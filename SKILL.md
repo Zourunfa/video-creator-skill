@@ -228,20 +228,10 @@ ffmpeg -i {output_dir}/raw_video.mp4 \
 
 ---
 
-## Phase 4: 多平台发布
+## Phase 4: 生成发布脚本
 
 ### 目标
-使用 social-auto-upload 将视频发布到多个平台。
-
-### 前置条件检查
-
-```bash
-# 检查 social-auto-upload
-ls {tools_social_upload}/
-# 检查是否已登录各平台（cookie 是否有效）
-```
-
-参考 `references/publish-guide.md` 获取详细发布指南。
+根据用户提供的发布信息，生成一个可执行的 `publish.sh` 脚本到输出目录，用户自行审阅和执行。
 
 ### 步骤
 
@@ -254,48 +244,95 @@ ls {tools_social_upload}/
 | `title` | 视频标题 | 各平台可能不同 |
 | `description` | 视频描述 | 各平台长度限制不同 |
 | `tags` | 标签 | 用逗号分隔 |
-| `platforms` | 目标平台 | B站、YouTube、抖音等 |
+| `platforms` | 目标平台 | 抖音、B站、小红书、快手 |
 | `tid` | B站分区 ID | 默认 122（野生技术协会） |
+| `account` | social-auto-upload 账号名 | 默认 "creator" |
 
 提供各平台标题/描述长度限制供用户参考：
-- **B站**：标题 ≤ 80 字，描述 ≤ 250 字
-- **YouTube**：标题 ≤ 100 字符，描述 ≤ 5000 字符
+- **B站**：标题 ≤ 80 字，描述 ≤ 250 字，标签 ≤ 12 个
 - **抖音**：标题 ≤ 55 字
+- **小红书**：标题 ≤ 20 字，描述 ≤ 1000 字
+- **快手**：标题 ≤ 55 字
 
-#### 4.2 执行发布
+#### 4.2 生成 publish.sh
 
-逐平台执行发布命令，每完成一个平台汇报结果：
+读取模板文件 `scripts/publish.sh`（位于 plugin 根目录的 scripts 文件夹），将收集到的信息填入模板，生成到 `{output_dir}/publish.sh`。
+
+模板使用 `sau_cli.py` 格式，结构为：
 
 ```bash
-# B站发布
-cd {tools_social_upload}
-python upload/cli.py video \
-  --video "{output_dir}/final_video.mp4" \
-  --title "视频标题" \
-  --description "视频描述" \
-  --tags "标签1,标签2,标签3" \
-  --tid 122
+#!/bin/bash
+# 视频多平台发布脚本 — 由 video-creator skill 自动生成
 
-# YouTube 发布
-python upload/cli.py youtube \
-  --video "{output_dir}/final_video.mp4" \
-  --title "Video Title" \
-  --description "Video Description" \
-  --tags "tag1,tag2,tag3"
+set -e
+
+VIDEO_FILE="{output_dir}/final_video.mp4"
+ACCOUNT="{account}"
+SAU_DIR="{tools_social_upload}"
+
+# --- 抖音 ---
+DOUYIN_TITLE="{title}"
+DOUYIN_DESC="{description}"
+DOUYIN_TAGS="{tags}"
+
+# --- B站 ---
+BILI_TITLE="{title}"
+BILI_DESC="{description}"
+BILI_TAGS="{tags}"
+BILI_TID={tid}
+
+# --- 小红书 ---
+XHS_TITLE="{title}"
+XHS_DESC="{description}"
+XHS_TAGS="{tags}"
+
+# --- 快手 ---
+KS_TITLE="{title}"
+KS_DESC="{description}"
+KS_TAGS="{tags}"
+
+cd "$SAU_DIR"
+
+publish_douyin() { ... }
+publish_bilibili() { ... }
+publish_xiaohongshu() { ... }
+publish_kuaishou() { ... }
+
+# 支持: bash publish.sh [douyin|bilibili|xiaohongshu|kuaishou|all]
 ```
 
-> 注意：实际命令格式取决于 social-auto-upload 版本。执行前先检查 `{tools_social_upload}/README.md` 确认 CLI 用法。
+**生成规则**：
+- 只生成用户选择的目标平台对应的函数和菜单项
+- 每个平台的标题/描述/标签根据平台限制自动裁剪
+- `SAU_DIR` 使用 Phase 1 收集的 `{tools_social_upload}` 路径
+- `VIDEO_FILE` 指向 `{output_dir}/final_video.mp4`
+- 生成后赋予执行权限：`chmod +x {output_dir}/publish.sh`
 
-#### 4.3 发布确认
+#### 4.3 交付脚本
 
-每个平台发布后：
-- 记录发布状态（成功/失败）
-- 如失败，分析错误原因并建议修复方案
-- 全部发布完成后，输出最终汇总
+生成完成后：
+- 展示脚本路径和用法说明
+- 使用 AskUserQuestion 确认用户已收到脚本
+
+```
+脚本已生成：{output_dir}/publish.sh
+
+用法：
+  bash publish.sh douyin       # 仅发布到抖音
+  bash publish.sh bilibili     # 仅发布到B站
+  bash publish.sh xiaohongshu  # 仅发布到小红书
+  bash publish.sh kuaishou     # 仅发布到快手
+  bash publish.sh all          # 发布到全部平台
+
+发布前请确保已登录各平台账号：
+  cd {tools_social_upload}
+  python sau_cli.py douyin login --account {account}
+  python sau_cli.py bilibili login --account {account}
+```
 
 ### 阶段产出
-- 各平台发布状态汇总表
-- 视频链接列表（如可获取）
+- `{output_dir}/publish.sh`（可执行的发布脚本）
+- 用法说明和登录提醒
 
 ---
 
@@ -345,8 +382,8 @@ Phase 3: 字幕装载
   → ffmpeg 烧录硬字幕 → final_video.mp4
   → 确认后进入 Phase 4
 
-Phase 4: 多平台发布
-  → AskUserQuestion 收集 title/description/tags/platforms
-  → social-auto-upload 逐平台发布
-  → 输出发布状态汇总
+Phase 4: 生成发布脚本
+  → AskUserQuestion 收集 title/description/tags/platforms/account
+  → 基于 scripts/publish.sh 模板生成发布脚本到 {output_dir}/publish.sh
+  → 展示用法说明和登录提醒
 ```

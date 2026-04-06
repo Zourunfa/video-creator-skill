@@ -14,61 +14,84 @@ cd social-auto-upload
 pip install -r requirements.txt
 ```
 
-### Cookie 配置
+### 账号登录
 
-各平台需要手动登录获取 cookie，保存到指定位置：
+发布前需先登录各平台：
 
-- **B站**：登录 bilibili.com → 导出 cookie → 保存到 `upload/bilibili/cookies/`
-- **YouTube**：使用 Chrome Profile 自动登录
-- **抖音**：登录 douyin.com → 导出 cookie
+```bash
+cd {tools_social_upload}
+python sau_cli.py douyin login --account creator
+python sau_cli.py bilibili login --account creator
+python sau_cli.py xiaohongshu login --account creator
+python sau_cli.py kuaishou login --account creator
+```
 
-> Cookie 过期后需要重新获取。如果上传失败，首先检查 cookie 是否有效。
+> Cookie 过期后需要重新登录。如果上传失败，首先检查登录状态。
 
-## CLI 命令格式
+## sau_cli.py 命令格式
+
+### 抖音发布
+
+```bash
+cd {tools_social_upload}
+python sau_cli.py douyin upload-video \
+  --account creator \
+  --file "{output_dir}/final_video.mp4" \
+  --title "视频标题" \
+  --desc "视频描述" \
+  --tags "标签1,标签2,标签3" \
+  --headed
+```
 
 ### B站发布
 
 ```bash
 cd {tools_social_upload}
-
-python upload/cli.py video \
-  --video "{output_dir}/final_video.mp4" \
+python sau_cli.py bilibili upload-video \
+  --account creator \
+  --file "{output_dir}/final_video.mp4" \
   --title "视频标题" \
-  --description "视频描述" \
+  --desc "视频描述" \
+  --tid 122 \
+  --tags "标签1,标签2,标签3"
+```
+
+### 小红书发布
+
+```bash
+cd {tools_social_upload}
+python sau_cli.py xiaohongshu upload-video \
+  --account creator \
+  --file "{output_dir}/final_video.mp4" \
+  --title "视频标题" \
+  --desc "视频描述" \
   --tags "标签1,标签2,标签3" \
-  --tid 122
+  --headed
 ```
 
-### YouTube 发布
+### 快手发布
 
 ```bash
-python upload/cli.py youtube \
-  --video "{output_dir}/final_video.mp4" \
-  --title "Video Title" \
-  --description "Video Description" \
-  --tags "tag1,tag2,tag3" \
-  --category "Science & Technology"
+cd {tools_social_upload}
+python sau_cli.py kuaishou upload-video \
+  --account creator \
+  --file "{output_dir}/final_video.mp4" \
+  --title "视频标题" \
+  --desc "视频描述" \
+  --tags "标签1,标签2,标签3" \
+  --headed
 ```
 
-### 抖音发布
-
-```bash
-python upload/cli.py douyin \
-  --video "{output_dir}/final_video.mp4" \
-  --title "视频标题"
-```
-
-> **注意**：实际 CLI 参数格式可能因 social-auto-upload 版本而异。使用前先检查项目的 README.md 确认最新用法。
+> **注意**：实际 CLI 参数格式可能因 social-auto-upload 版本而异。使用前先检查项目的 README.md 确认最新用法。`--headed` 参数用于有头浏览器模式（部分平台需要）。
 
 ## 各平台限制
 
 | 平台 | 标题长度 | 描述长度 | 标签数 | 视频大小 | 格式 |
 |------|----------|----------|--------|----------|------|
 | B站 | ≤ 80 字 | ≤ 250 字 | ≤ 12 个 | ≤ 8 GB | MP4 |
-| YouTube | ≤ 100 字符 | ≤ 5000 字符 | 无限制 | ≤ 256 GB | MP4/MOV/AVI |
 | 抖音 | ≤ 55 字 | 无 | 通过标题带# | ≤ 4 GB | MP4 |
 | 小红书 | ≤ 20 字 | ≤ 1000 字 | 通过正文带# | ≤ 5 GB | MP4 |
-| 视频号 | ≤ 30 字 | ≤ 1000 字 | 5-10 个 | ≤ 1 GB | MP4 |
+| 快手 | ≤ 55 字 | 无 | 通过标题带# | ≤ 4 GB | MP4 |
 
 ## B站分区 (tid) 常用值
 
@@ -169,7 +192,7 @@ Style: Default,Noto Sans CJK SC,18,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-
 2. [ ] 字幕时间轴准确，无偏移
 3. [ ] 标题符合各平台长度限制
 4. [ ] 描述包含关键信息和标签
-5. [ ] 各平台 cookie 有效
+5. [ ] 各平台账号已登录（cookie 有效）
 6. [ ] 网络连接稳定（上传大文件需要）
 
 ## 发布后操作
